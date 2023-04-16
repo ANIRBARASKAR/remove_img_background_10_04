@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+     let i;
+
+     for(i=0 ; i< 3 ; i++){
+        const log = () => {
+            console.log(i);
+        }
+        setTimeout(log,100)
+        
+     }
+
+    //  
+
+
+    
+// give two unorder int lists A and B with the same length , write a function to return list X where every element at indicates the total number of elements in list B that are less than or equal to element A[i] havingindex < = "i"    A= [3,2,8,2,1]  B= [16,4,8,2,1] expected output :- X = [0,0,2,1,1]
+
+const A =[3,2,8,2,1] 
+const  B = [16,4,8,2,1]
+   
+    function countElements(A, B) {
+  const X = [];
+  for (let i = 0; i < A.length; i++) {
+    let count = 0;
+    for (let j = 0; j <= i; j++) {
+      if (B[j] <= A[i]) {
+        count++;
+      }
+    }
+    X.push(count);
+  }
+  return X;
+}
+
+console.log(countElements(A,B));
+
+    </script>
+</body>
+</html>

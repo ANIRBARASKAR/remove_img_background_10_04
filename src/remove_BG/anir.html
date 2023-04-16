@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Getting Started with ml5.js</title>
+
+   
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/ml5@0.4.3/dist/ml5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.0.0-beta.12/fabric.min.js"></script>
+  </head>
+
+  <body>
+    <div class="message"></div>
+    <div class="originalWrap">
+    <img src="" class="original"/> 
+    </div>
+    <div class="previewWrap">
+    <canvas class="fabricjs" width="500" height="500" style="border:1px solid black"></canvas>
+      <br/>
+      <label>Mask Blur:</label>
+    <input class="blur" type="range" min="0" max="1" step="any" value="0.3"/>
+    </div>
+
+    <script>
+
+function LOG(msg) {
+  document.querySelector(".message").innerHTML = msg;
+}
+
+const c = document.querySelector("canvas.fabricjs");
+const canvas = new fabric.Canvas(c);    
+canvas.backgroundColor = " green ";
+const images = 
+  [  
+
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=200&q=60"];
+
+var img = images[0];
+document.querySelector(".original").src = img;
+
+LOG("loading image");
+fabric.Image.fromURL(
+  img,
+  function (oImg) {
+    LOG("image loaded");
+    canvas.add(oImg);
+    if (oImg.widh > canvas.width) {
+      oImg.scaleToWidth(canvas.width);
+    } else {
+      oImg.scaleToHeight(canvas.height);
+    }
+    LOG("removing background");
+    removeBackground(oImg);
+  },
+  { crossOrigin: "anonymous" }
+);
+
+
+
+function removeBackground(oImg) {
+  LOG("removing background: loading UNET face model");
+  const uNet = ml5.uNet("face");
+
+  LOG("removing background: UNET image segmentation");
+  uNet.segment(oImg._originalElement, (err, result) => {
+    console.log("result",result);
+    if (err) {
+      console.log(err);
+      return;
+    }
+
+    var r = raw2img(result.raw.backgroundMask, 128, 128);
+    // console.log(r.toDataURL());
+
+    LOG("removing background: loading image mask");
+    fabric.Image.fromURL(r.toDataURL(), function (mask) {
+      var blur = new fabric.Image.filters.Blur({ blur: 0.3 });
+      var blurControl = document.querySelector(".blur");
+    //   var blurControl = false;
+      if (blurControl) {
+        blurControl.onchange = blurControl.oninput = function () {
+          console.log("this.value",this.value);
+          blur.blur = this.value;
+          mask.setSrc(r.toDataURL(), () => {
+            mask.applyFilters();
+            mask.setSrc(mask.toDataURL(), () => {
+              oImg.applyFilters();  
+              oImg.canvas.requestRenderAll();
+            });
+          });
+        };
+      }
+      mask.filters.push(blur);
+      mask.applyFilters();
+      mask.setSrc(mask.toDataURL(), () => {
+        LOG("removing background: applying image mask");
+        var f = new fabric.Image.filters.BlendImage({
+          image: mask,
+          mode: "mask"
+        });
+        //call this to avoid some out of synch issues
+        //with fabricjs texture binding to GL context
+        canvas.requestRenderAll();
+
+        oImg.filters.push(f);
+        oImg.applyFilters();
+        canvas.requestRenderAll();
+        LOG("removing background: DONE");
+      });
+    });
+  }); 
+}
+
+function raw2img(raw, w, h) {
+
+    console.log("raw",raw);
+  var c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;  
+  console.log("c.width ",c.width ," c.height", c.height);
+  var ctx = c.getContext("2d");
+  var imgData = new ImageData(w, h);
+  imgData.data.set(raw);
+  ctx.putImageData(imgData, 0, 0, 0, 0, w, h);
+  return c;
+}
+
+    </script>
+  </body>
+</html>
